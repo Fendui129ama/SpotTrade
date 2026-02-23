@@ -124,3 +124,66 @@
       color: var(--text);
       border-radius: var(--radius);
       margin-bottom: 0.6rem;
+    }
+    .input:focus, select:focus { outline: none; border-color: var(--accent); }
+    .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .row .card { flex: 1; min-width: 260px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+    .msg { padding: 0.55rem 0.75rem; border-radius: var(--radius); margin-top: 0.5rem; font-size: 0.85rem; }
+    .msg.ok { background: var(--green-soft); border: 1px solid var(--green); color: var(--green); }
+    .msg.err { background: var(--red-soft); border: 1px solid var(--red); color: var(--red); }
+    .msg.info { background: var(--accent-soft); border: 1px solid var(--accent); color: var(--accent); }
+    .list { list-style: none; }
+    .list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .list li:last-child { border-bottom: none; }
+    .list .mono { font-family: var(--mono); font-size: 0.8rem; color: var(--text-dim); }
+    .side-buy { color: var(--green); }
+    .side-sell { color: var(--red); }
+    .empty-state { text-align: center; padding: 2rem; color: var(--text-dim); font-size: 0.95rem; }
+    .order-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .order-table th, .order-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .order-table th { color: var(--text-dim); font-weight: 500; }
+    .order-table tr:hover { background: var(--bg-elev); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+    .help-box { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 1rem; }
+    .help-box strong { color: var(--accent); }
+    pre { font-family: var(--mono); }
+    footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.8rem; color: var(--text-dim); text-align: center; }
+    .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
+    .badge-buy { background: var(--green-soft); color: var(--green); }
+    .badge-sell { background: var(--red-soft); color: var(--red); }
+    .badge-active { background: var(--accent-soft); color: var(--accent); }
+    #stats-bar span { margin-right: 0.5rem; }
+    .input::placeholder { color: var(--text-dim); opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <!-- SpotTrade: limit order matching UI for TradeMatch -->
+  <div class="wrap">
+    <!-- Header: contract address + wallet connect -->
+    <header role="banner">
+      <div class="brand">
+        <div class="logo" aria-label="SpotTrade">SpotTrade</div>
+        <p class="tagline">Limit order matching · TradeMatch</p>
+      </div>
+      <div class="header-right">
+        <input type="text" id="contract-address" class="contract" placeholder="TradeMatch contract 0x..." />
+        <button type="button" class="btn small" id="btn-attach">Attach</button>
+        <span class="addr" id="wallet-addr">—</span>
+        <button type="button" class="btn primary" id="btn-connect">Connect wallet</button>
+      </div>
+    </header>
+
+    <div class="stats" id="stats-bar" style="display:none;">
+      <span>Fee: <strong id="stat-fee">—</strong> bps</span>
+      <span>Min size: <strong id="stat-min">—</strong></span>
