@@ -250,3 +250,66 @@
         </div>
         <ul class="list" id="orders-list"></ul>
         <div class="empty-state" id="orders-empty" style="display:none;">No orders or contract not attached.</div>
+      </div>
+      <div class="card">
+        <h4>Batch cancel</h4>
+        <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Cancel multiple orders by listing order IDs (one per line or comma-separated). Only your orders will be cancelled.</p>
+        <textarea id="batch-cancel-ids" class="input" rows="3" placeholder="0x...&#10;0x..."></textarea>
+        <div class="actions">
+          <button type="button" class="btn red small" id="btn-batch-cancel">Cancel selected</button>
+        </div>
+        <div id="batch-cancel-msg" class="msg" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div id="panel-lookup" class="panel">
+      <div class="row">
+        <div class="card">
+          <h3>Lookup order by ID</h3>
+          <label>Order ID (bytes32 hex)</label>
+          <input type="text" id="lookup-id" class="input" placeholder="0x..." />
+          <div class="actions">
+            <button type="button" class="btn" id="btn-lookup">Lookup</button>
+          </div>
+          <div id="lookup-msg"></div>
+        </div>
+        <div class="card">
+          <h3>Order detail</h3>
+          <pre id="lookup-detail" style="font-size:0.8rem; color:var(--text-dim); white-space:pre-wrap; word-break:break-all; margin:0;"></pre>
+        </div>
+      </div>
+      <div class="card">
+        <h4>Active orders by maker address</h4>
+        <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Fetch all active order IDs for any maker address. Useful to see open orders before matching.</p>
+        <label>Maker address</label>
+        <input type="text" id="lookup-maker-addr" class="input" placeholder="0x..." />
+        <div class="actions">
+          <button type="button" class="btn small" id="btn-lookup-maker">Load active orders</button>
+        </div>
+        <pre id="lookup-maker-out" style="font-size:0.8rem; color:var(--text-dim); white-space:pre-wrap; word-break:break-all; margin-top:0.5rem;"></pre>
+      </div>
+    </div>
+
+    <div id="panel-match" class="panel">
+      <div class="card">
+        <h3>Match order (matcher only)</h3>
+        <div class="help-box">Only the configured matcher address can call matchOrder. When matching a <strong>buy</strong> order: you send fillWei (the base size) and the maker receives that size while the taker receives notional minus fee. When matching a <strong>sell</strong> order: you send notional (fillWei × priceTick / 10000) and the maker receives notional minus fee while the taker receives fillWei.</div>
+        <label>Order ID (bytes32)</label>
+        <input type="text" id="match-order-id" class="input" placeholder="0x..." />
+        <label>Taker address</label>
+        <input type="text" id="match-taker" class="input" placeholder="0x..." />
+        <label>Fill size (wei or ETH)</label>
+        <input type="text" id="match-fill" class="input" placeholder="0.1" />
+        <div class="actions">
+          <button type="button" class="btn primary" id="btn-match">Match</button>
+          <button type="button" class="btn" id="btn-match-estimate">Estimate required ETH</button>
+        </div>
+        <div id="match-msg"></div>
+      </div>
+    </div>
+
+    <div id="panel-fees" class="panel">
+      <div class="grid-2">
+        <div class="card">
+          <h3>Accumulated fees</h3>
+          <div class="help-box">Treasury and fee vault accumulate half of the match fee each. Only the treasury or fee vault address can sweep their respective balance.</div>
