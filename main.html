@@ -187,3 +187,66 @@
     <div class="stats" id="stats-bar" style="display:none;">
       <span>Fee: <strong id="stat-fee">—</strong> bps</span>
       <span>Min size: <strong id="stat-min">—</strong></span>
+      <span>Max size: <strong id="stat-max">—</strong></span>
+      <span>Paused: <strong id="stat-paused">—</strong></span>
+    </div>
+
+    <div class="tabs">
+      <button type="button" class="tab active" data-tab="place">Place order</button>
+      <button type="button" class="tab" data-tab="orders">My orders</button>
+      <button type="button" class="tab" data-tab="lookup">Lookup order</button>
+      <button type="button" class="tab" data-tab="match">Match (matcher)</button>
+      <button type="button" class="tab" data-tab="fees">Fees</button>
+      <button type="button" class="tab" data-tab="karrim">Karrim 9000</button>
+      <button type="button" class="tab" data-tab="config">Config</button>
+    </div>
+
+    <div id="panel-place" class="panel visible">
+      <div class="card" style="margin-bottom:1rem;">
+        <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Place a limit buy or sell order. You must send the required ETH: for buy, the notional (size × price / 10000); for sell, the size in wei. Use <strong>Estimate required ETH</strong> to see the amount before placing.</p>
+        <p style="font-size:0.85rem; color:var(--text-dim);">Size can be entered as ETH (e.g. 0.1) or wei. Expiry block 0 means the order never expires; otherwise it becomes invalid after that block.</p>
+      </div>
+      <div class="row">
+        <div class="card">
+          <h3>Place limit order</h3>
+          <label>Side</label>
+          <select id="place-side" class="input">
+            <option value="1">Buy</option>
+            <option value="0">Sell</option>
+          </select>
+          <label>Price (tick, basis-point style)</label>
+          <input type="number" id="place-price" class="input" min="1" placeholder="10000" value="10000" />
+          <label>Size (wei or ETH)</label>
+          <input type="text" id="place-size" class="input" placeholder="0.1 or 100000000000000000" />
+          <label>Expiry block (optional, 0 = no expiry)</label>
+          <input type="number" id="place-expiry" class="input" min="0" value="0" placeholder="0" />
+          <div class="actions">
+            <button type="button" class="btn primary" id="btn-place">Place order</button>
+            <button type="button" class="btn" id="btn-estimate">Estimate required ETH</button>
+          </div>
+          <div id="place-msg"></div>
+        </div>
+        <div class="card">
+          <h3>Help</h3>
+          <div class="help-box">
+            <strong>Buy order:</strong> You lock quote (ETH). Required value = size × price / 10000. When matched, you receive the base (size in wei) and the taker receives quote minus fee.
+          </div>
+          <div class="help-box">
+            <strong>Sell order:</strong> You lock base (size in wei). Required value = size. When matched, you receive quote minus fee and the taker receives the base.
+          </div>
+          <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Price tick is in basis-point style (e.g. 10000 = 1:1, 9500 = 0.95).</p>
+          <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Expiry block: set to 0 for no expiry; otherwise the order becomes invalid after that block.</p>
+          <div id="estimate-out" style="margin-top:0.75rem; font-family:var(--mono); font-size:0.85rem; color:var(--text-dim);"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-orders" class="panel">
+      <div class="card">
+        <h3>My orders</h3>
+        <div class="help-box">Orders placed by your wallet. Attach TradeMatch contract and connect. Click <strong>Cancel</strong> to cancel an active order. Only your own orders can be cancelled.</div>
+        <div class="actions">
+          <button type="button" class="btn small" id="btn-refresh-orders">Refresh</button>
+        </div>
+        <ul class="list" id="orders-list"></ul>
+        <div class="empty-state" id="orders-empty" style="display:none;">No orders or contract not attached.</div>
