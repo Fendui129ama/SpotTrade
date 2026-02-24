@@ -376,3 +376,66 @@
         <label>Buy side (1 = buy, 0 = sell)</label>
         <input type="number" id="calc-buy" class="input" min="0" max="1" value="1" />
         <label>Price tick</label>
+        <input type="number" id="calc-price" class="input" value="10000" />
+        <label>Size (wei, decimal or hex)</label>
+        <input type="text" id="calc-size" class="input" placeholder="1000000000000000000" />
+        <label>Sequence (from nextOrderSequence before place)</label>
+        <input type="number" id="calc-seq" class="input" min="1" placeholder="1" />
+        <div class="actions">
+          <button type="button" class="btn small" id="btn-calc-order-id">Compute order ID</button>
+        </div>
+        <pre id="calc-order-id-out" style="font-size:0.8rem; color:var(--accent); margin-top:0.5rem; word-break:break-all;"></pre>
+      </div>
+      <div class="card">
+        <h4>Next order sequence</h4>
+        <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">The next order you place will get this sequence number. Use it in Compute order ID if you want to precompute the order ID before placing.</p>
+        <div class="actions">
+          <button type="button" class="btn small" id="btn-next-seq">Get next sequence</button>
+        </div>
+        <pre id="next-seq-out" style="font-size:0.85rem; color:var(--accent); margin-top:0.5rem;"></pre>
+      </div>
+      <div class="card">
+        <h4>Glossary</h4>
+        <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;"><strong>Maker:</strong> Who places the limit order. <strong>Taker:</strong> Who gets filled against the order (when matcher runs matchOrder). <strong>Price tick:</strong> Basis-point style price (10000 = 1.0). <strong>Notional:</strong> size × price tick / 10000. <strong>Matcher:</strong> Trusted address that can call matchOrder. <strong>Treasury / Fee vault:</strong> Immutable addresses that receive half of fees each.</p>
+      </div>
+      <div class="card">
+        <h4>Quick reference — required ETH</h4>
+        <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Place buy order: required = (size × priceTick) / 10000 (in wei). Place sell order: required = size (in wei). Match buy order: matcher sends fillWei (base). Match sell order: matcher sends notional = (fillWei × priceTick) / 10000.</p>
+        <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Order size must be between min and max order size (see stats bar). Price tick must be at least 1. Each maker can have up to 256 open orders.</p>
+        <p style="font-size:0.85rem; color:var(--text-dim);">Cancel or expiry refunds the maker: for buy orders the unused notional; for sell orders the unfilled size. Keeper can expire orders past their expiry block via the contract.</p>
+      </div>
+      <div class="card">
+        <h4>About TradeMatch</h4>
+        <p style="font-size:0.85rem; color:var(--text-dim);">TradeMatch is a limit order matching service on EVM chains. Makers place buy or sell orders with a price tick and size; the matcher fills orders on behalf of takers. Fees are split between treasury and fee vault. Orders can have an optional expiry block. Use SpotTrade to place, cancel, lookup, and (as matcher) match orders.</p>
+      </div>
+    </div>
+  </div>
+  <footer>
+    SpotTrade — Limit order matching UI for TradeMatch. Connect your wallet, attach the TradeMatch contract address, and use Place order / My orders / Lookup / Match / Fees / Karrim 9000 / Config tabs. Karrim 9000 is a separate NFT collection (K9K); attach its contract in the Karrim tab to mint. All amounts use the connected chain's native token (ETH or equivalent). Order IDs are keccak256 hashes; use the Compute order ID tool in Config to verify. Batch cancel accepts multiple order IDs (one per line or comma-separated). Only treasury and fee vault addresses can sweep their respective fees.
+  </footer>
+
+  <script>
+    (function() {
+      const contractInput = document.getElementById('contract-address');
+      const walletAddrEl = document.getElementById('wallet-addr');
+      const btnConnect = document.getElementById('btn-connect');
+      const btnAttach = document.getElementById('btn-attach');
+      const statsBar = document.getElementById('stats-bar');
+
+      let provider = null;
+      let signer = null;
+      let contract = null;
+      let contractAddress = '';
+
+      const ABI = [
+        'function placeOrder(bool buySide, uint256 priceTick, uint256 sizeWei) payable returns (bytes32)',
+        'function placeOrderWithExpiry(bool buySide, uint256 priceTick, uint256 sizeWei, uint256 expireAtBlock) payable returns (bytes32)',
+        'function cancelOrder(bytes32 orderId)',
+        'function getMakerOrderIds(address maker) view returns (bytes32[])',
+        'function getOrder(bytes32 orderId) view returns (address maker, bool buySide, uint256 priceTick, uint256 sizeWei, uint256 filledWei, uint256 placedAtBlock, uint256 expireAtBlock, bool cancelled)',
+        'function getOrderRemaining(bytes32 orderId) view returns (uint256)',
+        'function isOrderActive(bytes32 orderId) view returns (bool)',
+        'function getConfig() view returns (address treasury_, address feeVault_, address orderBookKeeper_, address matcher_, uint256 feeBps_, uint256 minOrderSizeWei_, uint256 maxOrderSizeWei_, uint256 deployedBlock_, bool matchbookPaused_)',
+        'function requiredValueToPlaceOrder(bool buySideParam, uint256 priceTickParam, uint256 sizeWeiParam) view returns (uint256)',
+        'function nextOrderSequence() view returns (uint256)',
+        'function computeOrderIdFromParams(address makerAddr, bool buySideParam, uint256 priceTickParam, uint256 sizeWeiParam, uint256 seqParam) view returns (bytes32)',
