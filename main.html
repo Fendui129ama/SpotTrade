@@ -439,3 +439,66 @@
         'function requiredValueToPlaceOrder(bool buySideParam, uint256 priceTickParam, uint256 sizeWeiParam) view returns (uint256)',
         'function nextOrderSequence() view returns (uint256)',
         'function computeOrderIdFromParams(address makerAddr, bool buySideParam, uint256 priceTickParam, uint256 sizeWeiParam, uint256 seqParam) view returns (bytes32)',
+        'function getOrderView(bytes32 orderId) view returns (tuple(bytes32 orderId, address maker, bool buySide, uint256 priceTick, uint256 sizeWei, uint256 filledWei, uint256 remainingWei, uint256 placedAtBlock, uint256 expireAtBlock, bool cancelled, bool active))',
+        'function getActiveOrderIdsForMaker(address maker) view returns (bytes32[])',
+        'function getOrderSummary(bytes32 orderId) view returns (address maker, bool buySide, uint256 sizeWei, uint256 filledWei, uint256 remainingWei, uint256 priceTick, bool active)',
+        'function matchOrder(bytes32 orderId, address taker, uint256 fillWei) payable',
+        'function matchOrderSimple(bytes32 orderId, address taker) payable',
+        'function requiredValueToMatchOrder(bytes32 orderIdParam, uint256 fillWeiParam) view returns (uint256)',
+        'function getFeeAccumulatedTreasury() view returns (uint256)',
+        'function getFeeAccumulatedFeeVault() view returns (uint256)',
+        'function sweepTreasuryFees()',
+        'function sweepFeeVaultFees()',
+        'function batchCancelOrders(bytes32[] orderIds)'
+      ];
+
+      const KARRIM_ABI = [
+        'function mint(address to) payable returns (uint256)',
+        'function getMintPriceWei() view returns (uint256)',
+        'function totalMinted() view returns (uint256)',
+        'function maxSupply() view returns (uint256)',
+        'function remainingSupply() view returns (uint256)',
+        'function getBeneficiary() view returns (address)',
+        'function isPaused() view returns (bool)'
+      ];
+
+      function showMsg(containerId, text, type) {
+        const el = document.getElementById(containerId);
+        if (!el) return;
+        el.textContent = text;
+        el.className = 'msg ' + (type || 'info');
+        el.style.display = 'block';
+      }
+
+      function hideMsg(containerId) {
+        const el = document.getElementById(containerId);
+        if (el) { el.style.display = 'none'; el.textContent = ''; }
+      }
+
+      async function connectWallet() {
+        try {
+          if (!window.ethereum) { showMsg('place-msg', 'No Ethereum provider.', 'err'); return; }
+          provider = new ethers.BrowserProvider(window.ethereum);
+          const accounts = await provider.send('eth_requestAccounts', []);
+          if (accounts.length === 0) { showMsg('place-msg', 'No account selected.', 'err'); return; }
+          signer = await provider.getSigner();
+          const addr = await signer.getAddress();
+          walletAddrEl.textContent = addr.slice(0, 6) + '…' + addr.slice(-4);
+          walletAddrEl.title = addr;
+          if (contractAddress) attachContract(contractAddress);
+          loadOrders();
+          var toInput = document.getElementById('karrim-to');
+          if (toInput && !toInput.value.trim()) toInput.placeholder = addr.slice(0, 8) + '…' + addr.slice(-6);
+        } catch (e) {
+          showMsg('place-msg', e.message || 'Connect failed.', 'err');
+        }
+      }
+
+      function attachContract(addr) {
+        const a = (addr || contractInput.value || '').trim();
+        if (!ethers.isAddress(a)) { showMsg('place-msg', 'Invalid contract address.', 'err'); return; }
+        contractAddress = a;
+        contractInput.value = a;
+        try {
+          contract = new ethers.Contract(a, ABI, signer || provider);
+          statsBar.style.display = 'flex';
