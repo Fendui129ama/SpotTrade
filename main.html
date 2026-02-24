@@ -691,3 +691,66 @@
           msgEl.className = 'msg ok';
           loadOrders();
         } catch (e) {
+          msgEl.textContent = e.message || 'Batch cancel failed.';
+          msgEl.className = 'msg err';
+          msgEl.style.display = 'block';
+        }
+      });
+      document.getElementById('btn-lookup').addEventListener('click', lookupOrder);
+      document.getElementById('btn-load-config').addEventListener('click', loadConfigPanel);
+
+      document.getElementById('btn-next-seq').addEventListener('click', async function() {
+        const out = document.getElementById('next-seq-out');
+        if (!contract) { out.textContent = 'Attach contract first.'; return; }
+        try {
+          const seq = await contract.nextOrderSequence();
+          out.textContent = seq.toString();
+        } catch (e) {
+          out.textContent = 'Error: ' + (e.message || 'unknown');
+        }
+      });
+
+      document.getElementById('btn-calc-order-id').addEventListener('click', async function() {
+        const out = document.getElementById('calc-order-id-out');
+        const maker = document.getElementById('calc-maker').value.trim();
+        const buySide = document.getElementById('calc-buy').value !== '0';
+        const price = document.getElementById('calc-price').value.trim();
+        const sizeInput = document.getElementById('calc-size').value.trim();
+        const seq = document.getElementById('calc-seq').value.trim();
+        if (!contract || !maker || !price || !sizeInput || !seq) { out.textContent = 'Attach contract and fill all fields.'; return; }
+        if (!ethers.isAddress(maker)) { out.textContent = 'Invalid maker address.'; return; }
+        try {
+          let sizeWei = sizeInput;
+          if (sizeInput.includes('.') || /^\d+$/.test(sizeInput)) sizeWei = ethers.parseEther(sizeInput).toString();
+          else sizeWei = BigInt(sizeInput).toString();
+          const orderId = await contract.computeOrderIdFromParams(maker, buySide, price, sizeWei, seq);
+          out.textContent = orderId;
+        } catch (e) {
+          out.textContent = 'Error: ' + (e.message || 'unknown');
+        }
+      });
+
+      async function matchOrder() {
+        const msgEl = document.getElementById('match-msg');
+        msgEl.style.display = 'none';
+        const orderId = document.getElementById('match-order-id').value.trim();
+        const taker = document.getElementById('match-taker').value.trim();
+        const fillInput = document.getElementById('match-fill').value.trim();
+        if (!contract || !signer) { showMsg('match-msg', 'Connect wallet and attach TradeMatch.', 'err'); msgEl.style.display = 'block'; return; }
+        if (!orderId || !taker || !fillInput || !ethers.isAddress(taker)) { showMsg('match-msg', 'Fill order ID, taker address, and fill size.', 'err'); msgEl.style.display = 'block'; return; }
+        try {
+          const fillWei = fillInput.includes('.') || /^\d+$/.test(fillInput) ? ethers.parseEther(fillInput) : BigInt(fillInput);
+          const required = await contract.requiredValueToMatchOrder(orderId, fillWei.toString());
+          const tx = await contract.matchOrder(orderId, taker, fillWei.toString(), { value: required });
+          showMsg('match-msg', 'Tx: ' + tx.hash, 'info');
+          msgEl.style.display = 'block';
+          await tx.wait();
+          showMsg('match-msg', 'Matched.', 'ok');
+        } catch (e) {
+          showMsg('match-msg', e.message || 'Match failed.', 'err');
+          msgEl.style.display = 'block';
+        }
+      }
+
+      document.getElementById('btn-match').addEventListener('click', matchOrder);
+      document.getElementById('btn-match-estimate').addEventListener('click', async function() {
