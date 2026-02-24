@@ -817,3 +817,53 @@
         const karrimAddr = document.getElementById('karrim-contract').value.trim();
         const toInput = document.getElementById('karrim-to').value.trim();
         if (!ethers.isAddress(karrimAddr)) { showMsg('karrim-msg', 'Invalid Karrim contract address.', 'err'); return; }
+        if (!signer) { showMsg('karrim-msg', 'Connect wallet.', 'err'); return; }
+        const to = toInput && ethers.isAddress(toInput) ? toInput : (await signer.getAddress());
+        try {
+          const k9k = new ethers.Contract(karrimAddr, KARRIM_ABI, signer);
+          const price = await k9k.getMintPriceWei();
+          const tx = await k9k.mint(to, { value: price });
+          showMsg('karrim-msg', 'Tx: ' + tx.hash, 'info');
+          await tx.wait();
+          showMsg('karrim-msg', 'Minted.', 'ok');
+        } catch (e) {
+          showMsg('karrim-msg', e.message || 'Mint failed.', 'err');
+        }
+      });
+
+      document.getElementById('btn-karrim-info').addEventListener('click', async function() {
+        const karrimAddr = document.getElementById('karrim-contract').value.trim();
+        const info = document.getElementById('karrim-info');
+        if (!ethers.isAddress(karrimAddr)) { info.textContent = 'Enter Karrim contract address.'; return; }
+        try {
+          const k9k = new ethers.Contract(karrimAddr, KARRIM_ABI, provider || signer);
+          const [price, totalMinted, maxSupply, remaining, beneficiary, paused] = await Promise.all([
+            k9k.getMintPriceWei(),
+            k9k.totalMinted(),
+            k9k.maxSupply(),
+            k9k.remainingSupply(),
+            k9k.getBeneficiary(),
+            k9k.isPaused()
+          ]);
+          info.textContent = 'Mint price: ' + ethers.formatEther(price) + ' ETH\nTotal minted: ' + totalMinted + '\nMax supply: ' + maxSupply + '\nRemaining: ' + remaining + '\nBeneficiary: ' + beneficiary + '\nPaused: ' + paused;
+        } catch (e) { info.textContent = 'Error: ' + (e.message || 'unknown'); }
+      });
+
+      document.querySelectorAll('.tab').forEach(function(t) {
+        t.addEventListener('click', function() {
+          document.querySelectorAll('.tab').forEach(function(x) { x.classList.remove('active'); });
+          document.querySelectorAll('.panel').forEach(function(x) { x.classList.remove('visible'); });
+          t.classList.add('active');
+          const id = 'panel-' + t.getAttribute('data-tab');
+          const panel = document.getElementById(id);
+          if (panel) panel.classList.add('visible');
+          if (t.getAttribute('data-tab') === 'orders') loadOrders();
+          if (t.getAttribute('data-tab') === 'fees') document.getElementById('btn-load-fees').click();
+        });
+      });
+    })();
+  </script>
+  <!-- SpotTrade: TradeMatch limit order UI; Karrim 9000 NFT mint in Karrim tab -->
+</body>
+</html>
+
