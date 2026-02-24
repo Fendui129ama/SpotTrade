@@ -502,3 +502,66 @@
         try {
           contract = new ethers.Contract(a, ABI, signer || provider);
           statsBar.style.display = 'flex';
+          loadConfig();
+          loadOrders();
+        } catch (e) {
+          showMsg('place-msg', e.message || 'Attach failed.', 'err');
+        }
+      }
+
+      async function loadConfig() {
+        if (!contract) return;
+        try {
+          const cfg = await contract.getConfig();
+          document.getElementById('stat-fee').textContent = cfg[4].toString();
+          document.getElementById('stat-min').textContent = ethers.formatEther(cfg[5]);
+          document.getElementById('stat-max').textContent = ethers.formatEther(cfg[6]);
+          document.getElementById('stat-paused').textContent = cfg[8] ? 'Yes' : 'No';
+          document.getElementById('stat-paused').style.color = cfg[8] ? 'var(--red)' : 'var(--green)';
+        } catch (_) {}
+      }
+
+      async function loadOrders() {
+        const list = document.getElementById('orders-list');
+        const empty = document.getElementById('orders-empty');
+        list.innerHTML = '';
+        empty.style.display = 'none';
+        if (!contract || !signer) { empty.style.display = 'block'; return; }
+        try {
+          const addr = await signer.getAddress();
+          const ids = await contract.getMakerOrderIds(addr);
+          const len = Array.isArray(ids) ? ids.length : (ids && ids.length !== undefined ? Number(ids.length) : 0);
+          if (len === 0) { empty.style.display = 'block'; return; }
+          for (let i = 0; i < Math.min(len, 50); i++) {
+            const oid = ids[i];
+            try {
+              const o = await contract.getOrder(oid);
+              const rem = await contract.getOrderRemaining(oid);
+              const active = await contract.isOrderActive(oid);
+              const sideClass = o[1] ? 'side-buy' : 'side-sell';
+              const sideText = o[1] ? 'Buy' : 'Sell';
+              const li = document.createElement('li');
+              li.innerHTML = '<span class="' + sideClass + '">' + sideText + '</span> ' +
+                'price ' + o[2].toString() + ' size ' + ethers.formatEther(o[3]) + ' filled ' + ethers.formatEther(o[4]) +
+                ' <span class="mono">' + (active ? 'active' : '—') + ' rem ' + ethers.formatEther(rem) + '</span>' +
+                ' <button type="button" class="btn small red" data-order-id="' + oid + '">Cancel</button>';
+              list.appendChild(li);
+            } catch (_) {}
+          }
+          list.querySelectorAll('button[data-order-id]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              cancelOrder(btn.getAttribute('data-order-id'));
+            });
+          });
+        } catch (e) {
+          empty.style.display = 'block';
+        }
+      }
+
+      async function cancelOrder(orderIdHex) {
+        hideMsg('place-msg');
+        if (!contract || !signer) { showMsg('place-msg', 'Connect wallet and attach contract.', 'err'); return; }
+        try {
+          const tx = await contract.cancelOrder(orderIdHex);
+          showMsg('place-msg', 'Cancel tx: ' + tx.hash, 'info');
+          await tx.wait();
