@@ -754,3 +754,66 @@
 
       document.getElementById('btn-match').addEventListener('click', matchOrder);
       document.getElementById('btn-match-estimate').addEventListener('click', async function() {
+        const orderId = document.getElementById('match-order-id').value.trim();
+        const fillInput = document.getElementById('match-fill').value.trim();
+        if (!contract || !orderId || !fillInput) { document.getElementById('match-msg').textContent = 'Fill order ID and fill size.'; document.getElementById('match-msg').style.display = 'block'; return; }
+        try {
+          const fillWei = fillInput.includes('.') || /^\d+$/.test(fillInput) ? ethers.parseEther(fillInput) : BigInt(fillInput);
+          const required = await contract.requiredValueToMatchOrder(orderId, fillWei.toString());
+          showMsg('match-msg', 'Required ETH: ' + ethers.formatEther(required), 'info');
+        } catch (e) { showMsg('match-msg', e.message || 'Error', 'err'); }
+      });
+
+      document.getElementById('btn-load-fees').addEventListener('click', async function() {
+        const detail = document.getElementById('fees-detail');
+        if (!contract) { detail.textContent = 'Attach TradeMatch first.'; return; }
+        try {
+          const [treasuryFee, feeVaultFee] = await Promise.all([contract.getFeeAccumulatedTreasury(), contract.getFeeAccumulatedFeeVault()]);
+          detail.textContent = 'Treasury accumulated: ' + ethers.formatEther(treasuryFee) + ' ETH\nFee vault accumulated: ' + ethers.formatEther(feeVaultFee) + ' ETH';
+        } catch (e) { detail.textContent = 'Error: ' + (e.message || 'unknown'); }
+      });
+
+      document.getElementById('btn-sweep-treasury').addEventListener('click', async function() {
+        const msgEl = document.getElementById('sweep-msg');
+        msgEl.style.display = 'none';
+        if (!contract || !signer) { msgEl.textContent = 'Connect wallet and attach contract.'; msgEl.className = 'msg err'; msgEl.style.display = 'block'; return; }
+        try {
+          const tx = await contract.sweepTreasuryFees();
+          msgEl.textContent = 'Tx: ' + tx.hash;
+          msgEl.className = 'msg info';
+          msgEl.style.display = 'block';
+          await tx.wait();
+          msgEl.textContent = 'Treasury fees swept.';
+          msgEl.className = 'msg ok';
+          document.getElementById('btn-load-fees').click();
+        } catch (e) {
+          msgEl.textContent = e.message || 'Sweep failed (must be treasury address).';
+          msgEl.className = 'msg err';
+          msgEl.style.display = 'block';
+        }
+      });
+
+      document.getElementById('btn-sweep-feevault').addEventListener('click', async function() {
+        const msgEl = document.getElementById('sweep-msg');
+        msgEl.style.display = 'none';
+        if (!contract || !signer) { msgEl.textContent = 'Connect wallet and attach contract.'; msgEl.className = 'msg err'; msgEl.style.display = 'block'; return; }
+        try {
+          const tx = await contract.sweepFeeVaultFees();
+          msgEl.textContent = 'Tx: ' + tx.hash;
+          msgEl.className = 'msg info';
+          msgEl.style.display = 'block';
+          await tx.wait();
+          msgEl.textContent = 'Fee vault fees swept.';
+          msgEl.className = 'msg ok';
+          document.getElementById('btn-load-fees').click();
+        } catch (e) {
+          msgEl.textContent = e.message || 'Sweep failed (must be fee vault address).';
+          msgEl.className = 'msg err';
+          msgEl.style.display = 'block';
+        }
+      });
+
+      document.getElementById('btn-karrim-mint').addEventListener('click', async function() {
+        const karrimAddr = document.getElementById('karrim-contract').value.trim();
+        const toInput = document.getElementById('karrim-to').value.trim();
+        if (!ethers.isAddress(karrimAddr)) { showMsg('karrim-msg', 'Invalid Karrim contract address.', 'err'); return; }
