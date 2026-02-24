@@ -313,3 +313,66 @@
         <div class="card">
           <h3>Accumulated fees</h3>
           <div class="help-box">Treasury and fee vault accumulate half of the match fee each. Only the treasury or fee vault address can sweep their respective balance.</div>
+          <div class="actions">
+            <button type="button" class="btn small" id="btn-load-fees">Load fees</button>
+          </div>
+          <pre id="fees-detail" style="font-size:0.85rem; font-family:var(--mono); color:var(--text-dim); margin-top:0.75rem;"></pre>
+        </div>
+        <div class="card">
+          <h3>Sweep fees (treasury / fee vault only)</h3>
+          <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Each match pays a fee in bps; half goes to treasury and half to fee vault. Only those two addresses can call sweep. Connect with the corresponding wallet and click the button.</p>
+          <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Call sweep as the treasury or fee vault wallet. Connect with that wallet and click the matching button.</p>
+          <div class="actions">
+            <button type="button" class="btn small" id="btn-sweep-treasury">Sweep treasury</button>
+            <button type="button" class="btn small" id="btn-sweep-feevault">Sweep fee vault</button>
+          </div>
+          <div id="sweep-msg" class="msg" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-karrim" class="panel">
+      <div class="row">
+        <div class="card">
+          <h3>Karrim 9000 NFT</h3>
+          <div class="help-box">Fixed-cap NFT collection (9000 tokens). Mint price is set by the contract owner. Proceeds go to the immutable beneficiary address.</div>
+          <label>Karrim 9000 contract address</label>
+          <input type="text" id="karrim-contract" class="input" placeholder="0x..." />
+          <label>Mint to (address; leave empty to mint to connected wallet)</label>
+          <input type="text" id="karrim-to" class="input" placeholder="0x..." />
+          <div class="actions">
+            <button type="button" class="btn primary" id="btn-karrim-mint">Mint</button>
+            <button type="button" class="btn small" id="btn-karrim-info">Load collection info</button>
+          </div>
+          <div id="karrim-msg"></div>
+        </div>
+        <div class="card">
+          <h3>K9K collection info</h3>
+          <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Mint price, total minted, max supply (9000), remaining, beneficiary, and pause status.</p>
+          <pre id="karrim-info" style="font-size:0.8rem; color:var(--text-dim); white-space:pre-wrap; word-break:break-all; margin:0;"></pre>
+        </div>
+      </div>
+      <div class="card">
+        <h4>Karrim 9000 contract</h4>
+        <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Karrim 9000 (K9K) is a separate ERC721 NFT contract with a maximum supply of 9000. Deploy the Karrim9000.sol contract, set base URI and mint price as owner, then paste the deployed address above to mint from SpotTrade.</p>
+        <p style="font-size:0.85rem; color:var(--text-dim);">Mint price is in wei and is sent to the immutable beneficiary. The collection can be paused by the owner. Token IDs are sequential starting from 1.</p>
+      </div>
+    </div>
+
+    <div id="panel-config" class="panel">
+      <div class="card">
+        <h3>Contract config</h3>
+        <p style="margin-bottom:0.75rem; font-size:0.85rem; color:var(--text-dim);">TradeMatch immutable addresses and runtime config (fee bps, min/max order size, paused).</p>
+        <div class="actions">
+          <button type="button" class="btn small" id="btn-load-config">Load config</button>
+        </div>
+        <pre id="config-detail" style="font-size:0.8rem; font-family:var(--mono); color:var(--text-dim); white-space:pre-wrap; word-break:break-all; margin-top:0.75rem;"></pre>
+      </div>
+      <div class="card">
+        <h4>Compute order ID</h4>
+        <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:0.5rem;">Order ID = keccak256(maker, buySide, priceTick, sizeWei, sequence). Use same params as when placing to verify. Sequence is the next order number at the time of placement (call nextOrderSequence before placing to get it).</p>
+        <label>Maker address</label>
+        <input type="text" id="calc-maker" class="input" placeholder="0x..." />
+        <label>Buy side (1 = buy, 0 = sell)</label>
+        <input type="number" id="calc-buy" class="input" min="0" max="1" value="1" />
+        <label>Price tick</label>
