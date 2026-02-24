@@ -565,3 +565,66 @@
           const tx = await contract.cancelOrder(orderIdHex);
           showMsg('place-msg', 'Cancel tx: ' + tx.hash, 'info');
           await tx.wait();
+          showMsg('place-msg', 'Order cancelled.', 'ok');
+          loadOrders();
+        } catch (e) {
+          showMsg('place-msg', e.message || 'Cancel failed.', 'err');
+        }
+      }
+
+      async function placeOrder() {
+        hideMsg('place-msg');
+        const buySide = document.getElementById('place-side').value === '1';
+        const priceTick = document.getElementById('place-price').value.trim();
+        const sizeInput = document.getElementById('place-size').value.trim();
+        const expiry = document.getElementById('place-expiry').value.trim() || '0';
+        if (!contract || !signer) { showMsg('place-msg', 'Connect wallet and attach contract.', 'err'); return; }
+        if (!priceTick || !sizeInput) { showMsg('place-msg', 'Fill price and size.', 'err'); return; }
+        let sizeWei;
+        try {
+          sizeWei = sizeInput.includes('.') || /^\d+$/.test(sizeInput) ? ethers.parseEther(sizeInput) : BigInt(sizeInput);
+        } catch (_) {
+          showMsg('place-msg', 'Invalid size.', 'err');
+          return;
+        }
+        try {
+          const required = await contract.requiredValueToPlaceOrder(buySide, priceTick, sizeWei.toString());
+          const opts = { value: required };
+          let tx;
+          if (expiry === '0' || expiry === '') {
+            tx = await contract.placeOrder(buySide, priceTick, sizeWei.toString(), opts);
+          } else {
+            tx = await contract.placeOrderWithExpiry(buySide, priceTick, sizeWei.toString(), expiry, opts);
+          }
+          showMsg('place-msg', 'Tx: ' + tx.hash, 'info');
+          await tx.wait();
+          showMsg('place-msg', 'Order placed.', 'ok');
+          loadOrders();
+        } catch (e) {
+          showMsg('place-msg', e.message || 'Place failed.', 'err');
+        }
+      }
+
+      async function estimateRequired() {
+        const out = document.getElementById('estimate-out');
+        out.textContent = '';
+        const buySide = document.getElementById('place-side').value === '1';
+        const priceTick = document.getElementById('place-price').value.trim();
+        const sizeInput = document.getElementById('place-size').value.trim();
+        if (!contract || !priceTick || !sizeInput) { out.textContent = 'Attach contract and fill price/size.'; return; }
+        try {
+          const sizeWei = sizeInput.includes('.') || /^\d+$/.test(sizeInput) ? ethers.parseEther(sizeInput) : BigInt(sizeInput);
+          const required = await contract.requiredValueToPlaceOrder(buySide, priceTick, sizeWei.toString());
+          out.textContent = 'Required ETH: ' + ethers.formatEther(required);
+        } catch (e) {
+          out.textContent = 'Error: ' + (e.message || 'unknown');
+        }
+      }
+
+      async function lookupMakerOrders() {
+        const addr = document.getElementById('lookup-maker-addr').value.trim();
+        const out = document.getElementById('lookup-maker-out');
+        out.textContent = '';
+        if (!contract) { out.textContent = 'Attach contract first.'; return; }
+        if (!addr || !ethers.isAddress(addr)) { out.textContent = 'Enter valid maker address.'; return; }
+        try {
