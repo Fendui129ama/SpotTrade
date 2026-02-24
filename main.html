@@ -628,3 +628,66 @@
         if (!contract) { out.textContent = 'Attach contract first.'; return; }
         if (!addr || !ethers.isAddress(addr)) { out.textContent = 'Enter valid maker address.'; return; }
         try {
+          const ids = await contract.getActiveOrderIdsForMaker(addr);
+          const len = Array.isArray(ids) ? ids.length : (ids && ids.length !== undefined ? Number(ids.length) : 0);
+          out.textContent = len === 0 ? 'No active orders.' : ids.slice(0, 20).join('\n') + (len > 20 ? '\n... (' + len + ' total)' : '');
+        } catch (e) {
+          out.textContent = 'Error: ' + (e.message || 'unknown');
+        }
+      }
+
+      document.getElementById('btn-lookup-maker').addEventListener('click', lookupMakerOrders);
+
+      async function lookupOrder() {
+        const idInput = document.getElementById('lookup-id').value.trim();
+        const detail = document.getElementById('lookup-detail');
+        const msgEl = document.getElementById('lookup-msg');
+        msgEl.style.display = 'none';
+        detail.textContent = '';
+        if (!contract) { detail.textContent = 'Attach contract first.'; return; }
+        if (!idInput || !idInput.startsWith('0x') || idInput.length < 66) { detail.textContent = 'Enter valid order ID (0x... 66 chars).'; return; }
+        try {
+          const o = await contract.getOrder(idInput);
+          const rem = await contract.getOrderRemaining(idInput);
+          const active = await contract.isOrderActive(idInput);
+          detail.textContent = 'Maker: ' + o[0] + '\nBuy: ' + o[1] + '\nPrice tick: ' + o[2] + '\nSize: ' + o[3] + '\nFilled: ' + o[4] + '\nPlaced block: ' + o[5] + '\nExpire block: ' + o[6] + '\nCancelled: ' + o[7] + '\nRemaining: ' + rem + '\nActive: ' + active;
+        } catch (e) {
+          detail.textContent = 'Error: ' + (e.message || 'unknown');
+        }
+      }
+
+      async function loadConfigPanel() {
+        const detail = document.getElementById('config-detail');
+        if (!contract) { detail.textContent = 'Attach contract first.'; return; }
+        try {
+          const cfg = await contract.getConfig();
+          detail.textContent = 'Treasury: ' + cfg[0] + '\nFee vault: ' + cfg[1] + '\nKeeper: ' + cfg[2] + '\nMatcher: ' + cfg[3] + '\nFee bps: ' + cfg[4] + '\nMin order size: ' + ethers.formatEther(cfg[5]) + '\nMax order size: ' + ethers.formatEther(cfg[6]) + '\nDeployed block: ' + cfg[7] + '\nPaused: ' + cfg[8];
+        } catch (e) {
+          detail.textContent = 'Error: ' + (e.message || 'unknown');
+        }
+      }
+
+      btnConnect.addEventListener('click', connectWallet);
+      btnAttach.addEventListener('click', function() { attachContract(contractInput.value.trim()); });
+      contractInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') attachContract(contractInput.value.trim()); });
+      document.getElementById('btn-place').addEventListener('click', placeOrder);
+      document.getElementById('btn-estimate').addEventListener('click', estimateRequired);
+      document.getElementById('btn-refresh-orders').addEventListener('click', loadOrders);
+
+      document.getElementById('btn-batch-cancel').addEventListener('click', async function() {
+        const raw = document.getElementById('batch-cancel-ids').value.trim();
+        const msgEl = document.getElementById('batch-cancel-msg');
+        msgEl.style.display = 'none';
+        if (!contract || !signer) { msgEl.textContent = 'Connect wallet and attach contract.'; msgEl.className = 'msg err'; msgEl.style.display = 'block'; return; }
+        const ids = raw.split(/[\n,]+/).map(function(s) { return s.trim(); }).filter(Boolean);
+        if (ids.length === 0) { msgEl.textContent = 'Enter at least one order ID.'; msgEl.className = 'msg err'; msgEl.style.display = 'block'; return; }
+        try {
+          const tx = await contract.batchCancelOrders(ids);
+          msgEl.textContent = 'Tx: ' + tx.hash;
+          msgEl.className = 'msg info';
+          msgEl.style.display = 'block';
+          await tx.wait();
+          msgEl.textContent = 'Batch cancel done.';
+          msgEl.className = 'msg ok';
+          loadOrders();
+        } catch (e) {
